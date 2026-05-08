@@ -1,0 +1,54 @@
+name: Unpack Dbdplug.rar and remove target.zip
+
+on:
+  push:
+    branches:
+      - feature/unpack-src
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install unrar
+        run: sudo apt-get update && sudo apt-get install -y unrar
+
+      - name: List archive and unpack if present, then commit
+        env:
+          GIT_AUTHOR_NAME: "github-actions[bot]"
+          GIT_AUTHOR_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
+        run: |
+          if [ -f Dbdplug.rar ]; then
+            echo "Found Dbdplug.rar — listing first 200 lines of list:"
+            unrar l Dbdplug.rar | sed -n '1,200p'
+            echo "Extracting Dbdplug.rar into repository root..."
+            unrar x -o+ Dbdplug.rar .
+            git config user.name "$GIT_AUTHOR_NAME"
+            git config user.email "$GIT_AUTHOR_EMAIL"
+            git add .
+            git commit -m "Unpack Dbdplug.rar into repository" || echo "No changes to commit"
+            git push origin HEAD
+          else
+            echo "Dbdplug.rar not found"
+            exit 0
+          fi
+
+      - name: Remove target.zip if present
+        env:
+          GIT_AUTHOR_NAME: "github-actions[bot]"
+          GIT_AUTHOR_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
+        run: |
+          if [ -f target.zip ]; then
+            git rm -f target.zip || true
+            git config user.name "$GIT_AUTHOR_NAME"
+            git config user.email "$GIT_AUTHOR_EMAIL"
+            git commit -m "Remove target.zip (build artifact)" || echo "No removal commit"
+            git push origin HEAD
+          else
+            echo "target.zip not present"
+          fi
